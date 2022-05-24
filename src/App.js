@@ -1,77 +1,66 @@
 import './App.css';
-import { initializeApp } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import db from './firebaseConfig';
 import {
-  getDatabase,
-  ref,
-  child,
-  get,
-  set,
-  update,
-  remove,
-} from 'firebase/database';
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  doc,
+  deleteDoc,
+} from 'firebase/firestore';
 
-const firebaseConfig = {
-  apiKey: process.env.REACT_APP_APY_KEY,
-  authDomain: process.env.REACT_APP_AUTH_DOMAIN,
-  databaseURL: process.env.REACT_APP_DATABASE_URL,
-  projectId: process.env.REACT_APP_PROJECT_ID,
-  storageBucket: process.env.REACT_APP_STORAGE_BUCKET,
-  messagingSenderId: process.env.REACT_APP_MESSAGING_SENDER_ID,
-  appId: process.env.REACT_APP_APP_ID,
-  measurementId: process.env.REACT_APP_MEASUREMENT_ID,
+const articoliRef = collection(db, 'articoli');
+
+const getArticles = async () => {
+  const data = await getDocs(articoliRef);
+  console.log(data.docs.map((doc) => ({ ...doc.data(), id: doc.id })));
 };
 
-const app = initializeApp(firebaseConfig);
-
-const db = getDatabase(app);
-const dbRef = ref(getDatabase(app));
-
-const getArticles = () => {
-  get(child(dbRef, `articoli`)).then((snapshot) => {
-    console.log(snapshot.val());
-  });
-};
-
-const postArticle = (e) => {
+const postArticle = async (e) => {
   e.preventDefault();
 
   const formData = new FormData(e.target);
 
-  set(ref(db, `articoli/${formData.get('titolo')}`), {
+  await addDoc(articoliRef, {
     titolo: formData.get('titolo'),
     testo: formData.get('testo'),
   });
 };
 
-const updateArticle = (e) => {
+const updateArticle = async (e) => {
   e.preventDefault();
 
   const formData = new FormData(e.target);
 
-  const updates = {};
-  updates[`/articoli/${formData.get('titolo')}/testo`] = formData.get('testo');
+  const articolo = doc(db, 'articoli', formData.get('id'));
 
-  update(ref(db), updates);
+  const updates = {
+    titolo: formData.get('titolo'),
+    testo: formData.get('testo'),
+  };
+
+  await updateDoc(articolo, updates);
 };
 
-const removeArticle = (e) => {
+const removeArticle = async (e) => {
   e.preventDefault();
 
   const formData = new FormData(e.target);
 
-  remove(child(dbRef, `articoli/${formData.get('titolo')}`));
+  const articolo = doc(db, 'articoli', formData.get('id'));
+
+  await deleteDoc(articolo);
 };
 
 const reg = (e) => {
-  e.preventDefault();
-  const formData = new FormData(e.target);
-  const auth = getAuth(app);
-  createUserWithEmailAndPassword(
-    auth,
-    formData.get('email'),
-    formData.get('password')
-  );
+  // e.preventDefault();
+  // const formData = new FormData(e.target);
+  // const auth = getAuth(app);
+  // createUserWithEmailAndPassword(
+  //   auth,
+  //   formData.get('email'),
+  //   formData.get('password')
+  // );
 };
 
 function App() {
@@ -99,10 +88,11 @@ function App() {
         <form onSubmit={updateArticle}>
           <input type="text" placeholder="titolo" name="titolo" />
           <input type="text" placeholder="testo" name="testo" />
+          <input type="text" placeholder="id" name="id" />
           <button type="submit">Update article</button>
         </form>
         <form onSubmit={removeArticle}>
-          <input type="text" placeholder="titolo" name="titolo" />
+          <input type="text" placeholder="id" name="id" />
           <button type="submit">Remove article</button>
         </form>
       </header>
